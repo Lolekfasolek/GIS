@@ -41,6 +41,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Algorithm\GisExtensions.cs" />
+    <Compile Include="Algorithm\SimulatedAnnealing.cs" />
+    <Compile Include="GraphGenerator\Generator.cs" />
+    <Compile Include="Model\Edge.cs" />
+    <Compile Include="Model\Graph.cs" />
+    <Compile Include="Model\Vertex.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
