@@ -12,6 +12,10 @@ namespace GIS.Algorithm
     /// </summary>
     public class SimulatedAnnealing
     {
+        private const string NEIGHBOUR_FILE_NAME_SUFFIX = "_neighbour";
+        private const string SIZE_OF_SOLUTION_SUFFIX = "_size";
+        private const string SIZE_OF_NEIGHBOUR_SOLUTION_SUFFIX = "_neighbour_size";
+
         private Random random = new Random();
 
         /// <summary>
@@ -24,15 +28,21 @@ namespace GIS.Algorithm
         /// <param name="numberOfInnerLoops">Number of how many times inner loop should be done for each temperature.</param>
         /// <param name="coolingAlpha">Alpha for cooling.</param>
         /// <returns>Best found solution.</returns>
-        public List<Edge> FindSolution(Graph graph, Vertex startVertex, double initialTemperature, double finalTemperature, int numberOfInnerLoops, double coolingAlpha)
+        public List<Edge> FindSolution(Graph graph, Vertex startVertex, double initialTemperature, double finalTemperature, int numberOfInnerLoops, double coolingAlpha, string logActualFileName)
         {
             if (!graph.Vertices.Contains(startVertex))
             {
                 throw new InvalidOperationException("SIMULATED ANNEALING: Start vertex is not in graph!");
             }
+
+            var actualLogger = new FileLogger(logActualFileName);
+            var neighbourLogger = new FileLogger(logActualFileName + NEIGHBOUR_FILE_NAME_SUFFIX);
+            var sizeLogger = new FileLogger(logActualFileName + SIZE_OF_SOLUTION_SUFFIX);
+            var neighbourSizeLogger = new FileLogger(logActualFileName + SIZE_OF_NEIGHBOUR_SOLUTION_SUFFIX);
+
             var actualSolution = FindFirstSolution(graph, startVertex);
-            var initialSolutionCost = actualSolution.GetSolutionCost();
-            Console.WriteLine("Initial solution cost: " + actualSolution.GetSolutionCost());
+            actualLogger.LogLine("Initial solution cost: " + actualSolution.GetSolutionCost());
+            sizeLogger.LogLine("Initial solution size: " + actualSolution.Count);
             var bestSolution = actualSolution;
             var temperature = initialTemperature;
             do
@@ -40,7 +50,8 @@ namespace GIS.Algorithm
                 for (var i = 0; i < numberOfInnerLoops; i++)
                 {
                     var neighbour = GenerateNeighbour(actualSolution, graph);
-                    Console.WriteLine("Generated neighbour cost: " + neighbour.GetSolutionCost());
+                    neighbourLogger.LogLine(neighbour.GetSolutionCost().ToString());
+                    neighbourSizeLogger.LogLine(neighbour.Count.ToString());
                     if (neighbour.GetSolutionCost() < actualSolution.GetSolutionCost()
                         || (this.random.NextDouble() <= Math.Exp(-Math.Abs(neighbour.GetSolutionCost() - actualSolution.GetSolutionCost()) / temperature)))
                     {
@@ -51,10 +62,16 @@ namespace GIS.Algorithm
                         bestSolution = actualSolution;
                     }
                 }
-                Console.WriteLine("Actual cost: " + actualSolution.GetSolutionCost());
+                actualLogger.LogLine(actualSolution.GetSolutionCost().ToString());
+                sizeLogger.LogLine(actualSolution.Count.ToString());
                 temperature = Cooling(temperature, coolingAlpha);
             } while (temperature > finalTemperature);
-            Console.WriteLine(initialSolutionCost);
+
+            actualLogger.Dispose();
+            neighbourLogger.Dispose();
+            sizeLogger.Dispose();
+            neighbourSizeLogger.Dispose();
+
             return bestSolution;
         }
 
