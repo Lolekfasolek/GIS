@@ -31,6 +31,7 @@ namespace GIS.Algorithm
                 throw new InvalidOperationException("SIMULATED ANNEALING: Start vertex is not in graph!");
             }
             var actualSolution = FindFirstSolution(graph, startVertex);
+            var initialSolutionCost = actualSolution.GetSolutionCost();
             Console.WriteLine("Initial solution cost: " + actualSolution.GetSolutionCost());
             var bestSolution = actualSolution;
             var temperature = initialTemperature;
@@ -53,6 +54,7 @@ namespace GIS.Algorithm
                 Console.WriteLine("Actual cost: " + actualSolution.GetSolutionCost());
                 temperature = Cooling(temperature, coolingAlpha);
             } while (temperature > finalTemperature);
+            Console.WriteLine(initialSolutionCost);
             return bestSolution;
         }
 
@@ -242,23 +244,19 @@ namespace GIS.Algorithm
             {
                 throw new InvalidOperationException("SIMULATED ANNEALING: Number of solutions after split should be same as before split!");
             }
-            Vertex leftVertex;
-            Vertex rightVertex;
-            if (leftSolution.Count > 0)
+            var leftVertex = this.GetLeftVertex(leftSolution, edge);
+            Vertex rightVertex = null;
+            if (leftVertex != null)
             {
-                var lastEdge = leftSolution.Last();
-                leftVertex = this.FindVertexBetweenEdges(lastEdge, edge);
                 rightVertex = edge.GetOtherVertex(leftVertex);
-            }
-            else if (rightSolution.Count > 0)
+            } else if(leftVertex == null)
             {
-                var firstEdge = rightSolution.First();
-                rightVertex = this.FindVertexBetweenEdges(firstEdge, edge);
+                rightVertex = this.GetRightVertex(rightSolution, edge);
+                if (rightVertex == null)
+                {
+                    throw new InvalidOperationException("SIMULATED ANNEALING: Cannot determine left and right vertex!");
+                }
                 leftVertex = edge.GetOtherVertex(rightVertex);
-            }
-            else
-            {
-                throw new InvalidOperationException("SIMULATED ANNEALING: Left and right solutions have 0 elements!");
             }
             var shortestPath = this.ShortestPath(leftVertex, rightVertex, graph);
             if (!(leftSolution.Contains(edge) || rightSolution.Contains(edge) || shortestPath.Contains(edge)))
@@ -266,9 +264,68 @@ namespace GIS.Algorithm
                 shortestPath.Add(edge);
                 shortestPath.Add(edge);
             }
+
             leftSolution.AddRange(shortestPath);
             leftSolution.AddRange(rightSolution);
             return leftSolution;
+        }
+
+        private Vertex GetRightVertex(List<Edge> rightSolution, Edge edge)
+        {
+            if (rightSolution.Count == 0)
+            {
+                return null;
+            }
+            var firstEdge = rightSolution.First();
+            if (this.HasSameVertices(firstEdge, edge))
+            {
+                var subRightSolution = rightSolution.Skip(1).ToList();
+                var vertex = this.GetRightVertex(subRightSolution, firstEdge);
+                if (vertex == null)
+                {
+                    return null;
+                }
+                return firstEdge.GetOtherVertex(vertex);
+            }
+            else
+            {
+                return this.FindVertexBetweenEdges(firstEdge, edge);
+            }
+        }
+
+
+        private Vertex GetLeftVertex(List<Edge> leftSolution, Edge edge)
+        {
+            if (leftSolution.Count == 0)
+            {
+                return null;
+            }
+            var lastEdge = leftSolution.Last();
+            if (this.HasSameVertices(lastEdge, edge))
+            {
+                var subLeftSolution = leftSolution.Take(leftSolution.Count - 1).ToList();
+                var vertex = this.GetLeftVertex(subLeftSolution, lastEdge);
+                if (vertex == null)
+                {
+                    return null;
+                }
+                return lastEdge.GetOtherVertex(vertex);
+            }
+            else
+            {
+                return this.FindVertexBetweenEdges(lastEdge, edge);
+            }
+        }
+        /// <summary>
+        /// Checks whether both edges has same vertices.
+        /// </summary>
+        /// <param name="firstEdge">First edge to check.</param>
+        /// <param name="secondEdge">Second edge to check.</param>
+        /// <returns>True if both edges has same vertices.</returns>
+        private bool HasSameVertices(Edge firstEdge, Edge secondEdge)
+        {
+            return (firstEdge.FirstVertex == secondEdge.FirstVertex && firstEdge.SecondVertex == secondEdge.SecondVertex)
+                || (firstEdge.FirstVertex == secondEdge.SecondVertex && firstEdge.SecondVertex == secondEdge.FirstVertex);
         }
 
         /// <summary>
