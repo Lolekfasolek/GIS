@@ -42,6 +42,7 @@ namespace GIS.Algorithm
 
             var actualSolution = FindFirstSolution(graph, startVertex);
             actualLogger.LogLine("Initial solution cost: " + actualSolution.GetSolutionCost());
+            actualLogger.LogLine("Initial solution edges costs: " + actualSolution.Aggregate("", (s, e) => s + e.Length.ToString()));
             sizeLogger.LogLine("Initial solution size: " + actualSolution.Count);
             var bestSolution = actualSolution;
             var temperature = initialTemperature;
@@ -66,7 +67,8 @@ namespace GIS.Algorithm
                 sizeLogger.LogLine(actualSolution.Count.ToString());
                 temperature = Cooling(temperature, coolingAlpha);
             } while (temperature > finalTemperature);
-
+            actualLogger.LogLine("Final solution cost: " + bestSolution.GetSolutionCost());
+            actualLogger.LogLine("Final solution edges costs: " + bestSolution.Aggregate("", (s, e) => s + e.Length.ToString()));
             actualLogger.Dispose();
             neighbourLogger.Dispose();
             sizeLogger.Dispose();
@@ -130,7 +132,8 @@ namespace GIS.Algorithm
             var usedVertices = new HashSet<Vertex>();
             queue.Enqueue(actual);
             Vertex found = null;
-            while(queue.Count > 0){
+            while (queue.Count > 0)
+            {
                 var vertex = queue.Dequeue();
                 usedVertices.Add(vertex);
                 if (vertex.HasNotUsedEdge(usedEdges))
@@ -254,32 +257,54 @@ namespace GIS.Algorithm
         private List<Edge> GenerateNeighbour(List<Edge> actualSolution, Graph graph)
         {
             var edgeNumber = (int)Math.Round(this.random.NextDouble() * (actualSolution.Count - 1));
+            Edge leftEdge;
+            Edge rightEdge;
             var edge = actualSolution[edgeNumber];
             var leftSolution = actualSolution.Take(edgeNumber).ToList();
             var rightSolution = actualSolution.Skip(edgeNumber + 1).ToList();
-            if (leftSolution.Count + rightSolution.Count + 1 != actualSolution.Count)
+            if (leftSolution.Count > 0)
+            {
+                rightEdge = edge;
+                leftEdge = leftSolution.Last();
+                leftSolution.RemoveAt(leftSolution.Count - 1);
+            }
+            else
+            {
+                leftEdge = edge;
+                rightEdge = rightSolution.First();
+                rightSolution.RemoveAt(0);
+            }
+
+            if (leftSolution.Count + rightSolution.Count + 2 != actualSolution.Count)
             {
                 throw new InvalidOperationException("SIMULATED ANNEALING: Number of solutions after split should be same as before split!");
             }
-            var leftVertex = this.GetLeftVertex(leftSolution, edge);
+            var leftVertex = this.GetLeftVertex(leftSolution, leftEdge);
             Vertex rightVertex = null;
             if (leftVertex != null)
             {
-                rightVertex = edge.GetOtherVertex(leftVertex);
-            } else if(leftVertex == null)
+                rightVertex = rightEdge.GetOtherVertex(leftEdge.GetOtherVertex(leftVertex));
+            }
+            else if (leftVertex == null)
             {
-                rightVertex = this.GetRightVertex(rightSolution, edge);
+                rightVertex = this.GetRightVertex(rightSolution, rightEdge);
                 if (rightVertex == null)
                 {
                     throw new InvalidOperationException("SIMULATED ANNEALING: Cannot determine left and right vertex!");
                 }
-                leftVertex = edge.GetOtherVertex(rightVertex);
+                leftVertex = leftEdge.GetOtherVertex(rightEdge.GetOtherVertex(rightVertex));
             }
             var shortestPath = this.ShortestPath(leftVertex, rightVertex, graph);
-            if (!(leftSolution.Contains(edge) || rightSolution.Contains(edge) || shortestPath.Contains(edge)))
+            if (!(leftSolution.Contains(leftEdge) || rightSolution.Contains(leftEdge) || shortestPath.Contains(leftEdge)))
             {
-                shortestPath.Add(edge);
-                shortestPath.Add(edge);
+                leftSolution.Add(leftEdge);
+                leftSolution.Add(leftEdge);
+            }
+
+            if (!(leftSolution.Contains(rightEdge) || rightSolution.Contains(rightEdge) || shortestPath.Contains(rightEdge)))
+            {
+                shortestPath.Add(rightEdge);
+                shortestPath.Add(rightEdge);
             }
 
             leftSolution.AddRange(shortestPath);

@@ -14,36 +14,46 @@ namespace GIS
     {
         private static List<int> innerLoops = new List<int>
         {
-            1,2,3,4,5,6,7,8,9,10,15,20
+            1,2,3,4,5,6,7,8,9,10,15,20,25,30
         };
 
         private static List<int> temperatures = new List<int>
         {
-            50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000
+            50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000, 2500, 3000
+        };
+
+        private const int NUMBER_OF_LOOPS_EACH = 10;
+
+        private static List<int> graphSizes = new List<int>
+        {
+            5, 10, 15, 20, 25
         };
 
         static void Main(string[] args)
         {
             var algorithm = new SimulatedAnnealing();
             Console.WriteLine("Started");
-            for (var graphSize = 5; graphSize <= 25; graphSize += 5)
+            var iteration = 0;
+            for (var graphSize = 0; graphSize < graphSizes.Count; graphSize++)
             {
-                var graph = Generator.GenerateNewGraph(graphSize);
-                SaveGraphToFile(graph, "graph" + graphSize + ".txt");
+                var graph = Generator.GenerateNewGraph(graphSizes[graphSize]);
+                SaveGraphToFile(graph, "graph" + graphSizes[graphSize] + ".txt");
                 for (var temperature = 0; temperature < temperatures.Count; temperature++)
                 {
                     for (var inner = 0; inner < innerLoops.Count; inner++)
                     {
-                        for (int i = 0; i < 10; i++)
+                        for (int i = 0; i < NUMBER_OF_LOOPS_EACH; i++)
                         {
                             var file = "text";
-                            file += "_size" + graphSize.ToString();
+                            file += "_size" + graphSizes[graphSize].ToString();
                             file += "_temp" + temperatures[temperature].ToString();
                             file += "_inner" + innerLoops[inner].ToString();
                             file += "_iter" + i.ToString();
                             file += ".txt";
                             var solution = algorithm.FindSolution(graph, graph.Vertices.First(), temperatures[temperature], 1, innerLoops[inner], 0.92, file);
-                            Console.WriteLine("DONE: Graph size: " + graphSize + ". Temperature: " + temperatures[temperature] + ". Inner loops: " + innerLoops[inner] + ". Iteration: " + i);
+                            Console.WriteLine("DONE: Graph size: " + graphSizes[graphSize] + ". Temperature: " + temperatures[temperature] + ". Inner loops: " + innerLoops[inner] + ". Iteration: " + i);
+                            iteration++;
+                            Console.WriteLine("DONE: " + (((double)iteration) / (graphSizes.Count * temperatures.Count * innerLoops.Count * NUMBER_OF_LOOPS_EACH)).ToString() + "%");
                         }
                     }
                 }
