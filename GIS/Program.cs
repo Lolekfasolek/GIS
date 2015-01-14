@@ -26,7 +26,7 @@ namespace GIS
 
         private static List<int> graphSizes = new List<int>
         {
-            5, 10, 15, 20, 25
+            11,12,13,14
         };
 
         static void Main(string[] args)
